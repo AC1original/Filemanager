@@ -6,7 +6,6 @@ import java.util.List;
 
 public class FilemanagerV2 {
     private File file = null;
-    //TODO: set private
     private final List<String> fileManager = new ArrayList<>();
 
     public FilemanagerV2() {}
