@@ -87,8 +87,14 @@ public class FilemanagerV2 {
         }
     }
 
+    public void remove(int index) {
+        fileManager.remove(index);
+    }
+
     public boolean update() {
         try {
+            trimList();
+            clearFile();
             BufferedWriter writer = new BufferedWriter(new FileWriter(getFile()));
             for (String s : fileManager) {
                 writer.write(s);
@@ -100,5 +106,21 @@ public class FilemanagerV2 {
             return false;
         }
         return true;
+    }
+
+    private void clearFile() {
+        try {
+            RandomAccessFile randomAccessFile = new RandomAccessFile(getFile(), "rw");
+            randomAccessFile.setLength(0);
+        } catch (IOException e) {
+            System.err.println("[Filemanager]: Failed to clear file: " + e);
+        }
+    }
+
+    private void trimList() {
+        for (int i = lines()-1; i>0; i--) {
+            if (get(i).isEmpty()) remove(i);
+            else return;
+        }
     }
 }
