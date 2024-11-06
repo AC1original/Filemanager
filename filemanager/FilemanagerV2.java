@@ -16,6 +16,7 @@ public class FilemanagerV2 {
     public void setPath(String path) {
         try {
             this.file = new File(path);
+            clear();
             copyFileContent();
         } catch (NullPointerException e) {
             System.err.printf("[Filemanager]: Path \"%s\" not found!\n", path);
