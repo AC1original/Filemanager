@@ -1,26 +1,33 @@
-package data.filemanager;
+package de.ac;
 
 import java.io.*;
+import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FilemanagerV2 {
+public class Filemanager {
     private File file = null;
     private final List<String> fileManager = new ArrayList<>();
 
-    public FilemanagerV2() {}
-    public FilemanagerV2(String path) {
+    public Filemanager() {}
+    public Filemanager(String path) throws NoSuchFileException {
         setPath(path);
     }
+    public Filemanager(File file) throws NoSuchFileException {
+        setPath(file);
+    }
 
-    public void setPath(String path) {
-        try {
-            this.file = new File(path);
-            clear();
-            copyFileContent();
-        } catch (NullPointerException e) {
-            System.err.printf("[Filemanager]: Path \"%s\" not found!\n", path);
+    public void setPath(String path) throws NoSuchFileException {
+        setPath(new File(path));
+    }
+
+    public void setPath(File file) throws NoSuchFileException {
+        if (!file.exists()) {
+            throw new NoSuchFileException(file.getPath(), null, String.format("[Filemanager]: File \"%s\" not found!\n", file.getName()));
         }
+        this.file = file;
+        clearCache();
+        copyFileContent();
     }
 
     public String getPath() {
@@ -28,7 +35,7 @@ public class FilemanagerV2 {
     }
 
     public String getAbsolutePath() {
-        return file.getPath();
+        return file.getAbsolutePath();
     }
 
     public File getFile() {
@@ -40,7 +47,9 @@ public class FilemanagerV2 {
     }
 
     public String[] getContent() {
-        return fileManager.toArray(new String[0]);
+        String[] content = new String[fileManager.size()];
+        fileManager.toArray(content);
+        return content;
     }
 
     public int lines() {
@@ -66,7 +75,7 @@ public class FilemanagerV2 {
         }
     }
 
-    public void clear() {
+    public void clearCache() {
         fileManager.clear();
     }
 
@@ -81,7 +90,7 @@ public class FilemanagerV2 {
                 reader.lines().forEach(fileManager::add);
             reader.close();
         } catch (FileNotFoundException e) {
-            System.err.printf("[Filemanager]: File at \"%s\" not found!\n", getPath());
+            System.err.printf("[Filemanager]: Failed to copy file content because file at \"%s\" not found!\n", getPath());
         } catch (IOException e) {
             System.err.println("[Filemanager]: Failed to close Buffered Reader.");
         }
