@@ -7,35 +7,50 @@ import java.util.List;
 
 public class Filemanager {
     private File file = null;
+    private InputStream inputStream = null;
     private final List<String> fileManager = new ArrayList<>();
 
     public Filemanager() {}
+
     public Filemanager(String path) throws NoSuchFileException {
-        setPath(path);
+        setSource(path);
     }
+
     public Filemanager(File file) throws NoSuchFileException {
-        setPath(file);
+        setSource(file);
     }
 
-    public void setPath(String path) throws NoSuchFileException {
-        setPath(new File(path));
+    public Filemanager(InputStream inputStream) {
+        setSource(inputStream);
     }
 
-    public void setPath(File file) throws NoSuchFileException {
+    public void setSource(String path) throws NoSuchFileException {
+        setSource(new File(path));
+    }
+
+    public void setSource(File file) throws NoSuchFileException {
         if (!file.exists()) {
             throw new NoSuchFileException(file.getPath(), null, String.format("[Filemanager]: File \"%s\" not found!\n", file.getName()));
         }
         this.file = file;
+        this.inputStream = null;
         clearCache();
-        copyFileContent();
+        copyFileContentFromFile();
+    }
+
+    public void setSource(InputStream inputStream) {
+        this.inputStream = inputStream;
+        this.file = null;
+        clearCache();
+        copyFileContentFromStream();
     }
 
     public String getPath() {
-        return file.getPath();
+        return file != null ? file.getPath() : "[InputStream source]";
     }
 
     public String getAbsolutePath() {
-        return file.getAbsolutePath();
+        return file != null ? file.getAbsolutePath() : "[InputStream source]";
     }
 
     public File getFile() {
@@ -43,7 +58,7 @@ public class Filemanager {
     }
 
     public boolean isFolder() {
-        return file.isDirectory();
+        return file != null && file.isDirectory();
     }
 
     public String[] getContent() {
@@ -83,16 +98,28 @@ public class Filemanager {
         return fileManager.get(index);
     }
 
-    private void copyFileContent() {
-        try {
-            BufferedReader reader = new BufferedReader(new FileReader(getFile()));
-            if (!isFolder())
+    private void copyFileContentFromFile() {
+        try (BufferedReader reader = new BufferedReader(new FileReader(getFile()))) {
+            if (!isFolder()) {
                 reader.lines().forEach(fileManager::add);
-            reader.close();
+            }
         } catch (FileNotFoundException e) {
             System.err.printf("[Filemanager]: Failed to copy file content because file at \"%s\" not found!\n", getPath());
         } catch (IOException e) {
-            System.err.println("[Filemanager]: Failed to close Buffered Reader.");
+            System.err.println("[Filemanager]: Failed to read file content.");
+        }
+    }
+
+    private void copyFileContentFromStream() {
+        if (inputStream == null) {
+            System.err.println("[Filemanager]: InputStream is null.");
+            return;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+            reader.lines().forEach(fileManager::add);
+        } catch (IOException e) {
+            System.err.println("[Filemanager]: Failed to read content from InputStream.");
         }
     }
 
@@ -101,15 +128,20 @@ public class Filemanager {
     }
 
     public boolean update() {
+        if (file == null) {
+            System.err.println("[Filemanager]: Cannot update. No file source set.");
+            return false;
+        }
+
         try {
             trimList();
             clearFile();
-            BufferedWriter writer = new BufferedWriter(new FileWriter(getFile()));
-            for (String s : fileManager) {
-                writer.write(s);
-                writer.newLine();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(getFile()))) {
+                for (String s : fileManager) {
+                    writer.write(s);
+                    writer.newLine();
+                }
             }
-            writer.close();
         } catch (IOException e) {
             System.err.printf("[Filemanager]: Failed to write file \"%s\". File is a directory or cannot be opened. Maybe permission issue? Exception: %s", getFile().getName(), e);
             return false;
@@ -118,8 +150,7 @@ public class Filemanager {
     }
 
     private void clearFile() {
-        try {
-            RandomAccessFile randomAccessFile = new RandomAccessFile(getFile(), "rw");
+        try (RandomAccessFile randomAccessFile = new RandomAccessFile(getFile(), "rw")) {
             randomAccessFile.setLength(0);
         } catch (IOException e) {
             System.err.println("[Filemanager]: Failed to clear file: " + e);
@@ -127,7 +158,7 @@ public class Filemanager {
     }
 
     private void trimList() {
-        for (int i = lines()-1; i>0; i--) {
+        for (int i = lines() - 1; i > 0; i--) {
             if (get(i).isEmpty()) remove(i);
             else return;
         }
