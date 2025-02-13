@@ -1,5 +1,12 @@
 # File Manager
 Simple file manager library for Java. This file manager provides functionality to manage file contents, allowing reading, writing, and modifying files. It supports both file-based and InputStream-based sources.
+
+## Contributing
+Feel free to fork this repository, make improvements and submit a pull request!
+
+## Contact
+For any questions or suggestions [contact me on Discord](https://discord.com/users/872921450691067924/). <br>
+
 ## Dependency
 ### Maven
 ```
