@@ -6,7 +6,15 @@
 
     <groupId>de.ac</groupId>
     <artifactId>filemanager</artifactId>
-    <version>1.8</version>
+    <version>1.10</version>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jetbrains</groupId>
+            <artifactId>annotations</artifactId>
+            <version>24.0.0</version>
+        </dependency>
+    </dependencies>
 
     <properties>
         <maven.compiler.source>23</maven.compiler.source>

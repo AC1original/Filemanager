@@ -7,6 +7,7 @@ import java.io.*;
 import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * The {@code Filemanager} class provides functionality to manage file contents,
@@ -139,7 +140,7 @@ public class Filemanager {
     }
 
     /**
-     * Returns the file content as an array of strings.
+     * Returns the file content as array of strings.
      *
      * @return The content of the file.
      */
@@ -147,6 +148,15 @@ public class Filemanager {
         String[] content = new String[fileManager.size()];
         fileManager.toArray(content);
         return content;
+    }
+
+    /**
+     * Returns the file content as stream.
+     *
+     * @return The content of the file as Stream.
+     */
+    public Stream<String> getContentStream() {
+        return fileManager.stream();
     }
 
     /**
