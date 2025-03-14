@@ -6,6 +6,8 @@ import org.jetbrains.annotations.Nullable;
 import java.io.*;
 import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -56,8 +58,9 @@ public class Filemanager {
      * Creates a Filemanager instance with an InputStream as a source.
      *
      * @param inputStream The InputStream to read from.
+     * @throws IOException If content cannot be read from the InputStream.
      */
-    public Filemanager(@NotNull final InputStream inputStream) {
+    public Filemanager(@NotNull final InputStream inputStream) throws IOException {
         setSource(inputStream);
     }
 
@@ -87,19 +90,20 @@ public class Filemanager {
         this.file = file;
         this.inputStream = null;
         clearCache();
-        copyFileContentFromFile();
+        copyFileContentFromFile(fileManager);
     }
 
     /**
      * Sets an InputStream as the source for this Filemanager.
      *
      * @param inputStream The InputStream to read from.
+     * @throws IOException If content cannot be read from the InputStream.
      */
-    public void setSource(@NotNull final InputStream inputStream) {
+    public void setSource(@NotNull final InputStream inputStream) throws IOException {
         this.inputStream = inputStream;
         this.file = null;
         clearCache();
-        copyFileContentFromStream();
+        copyFileContentFromStream(fileManager);
     }
 
     /**
@@ -189,17 +193,17 @@ public class Filemanager {
     }
 
     /**
-     * Adds a line to the file content at a specific index.
+     * Adds a line to the file content at a specific index. (Don't forget it starts with index 0 not 1)
      *
      * @param index  The index you want to modify or add.
      * @param string The content at the specific index you want to set.
      */
     public void set(final int index, final String string) {
-        if (index >= fileManager.size()) {
+        if (index > fileManager.size()) {
             for (int i = lines(); i < index; i++) {
                 fileManager.add("");
             }
-            fileManager.add(string);
+            fileManager.set(index, string);
         } else {
             fileManager.set(index, string);
         }
@@ -223,10 +227,47 @@ public class Filemanager {
         return fileManager.get(index);
     }
 
-    private void copyFileContentFromFile() throws IOException {
+
+    /**
+     * Updates the manager's cached content of the file.
+     * Use this before making changes if the file might have been updated by something other than this FileManager instance while the source was active.
+     * It's recommended to use with {@link #isManagerUpToDate()}
+     *
+     * @throws IOException If the file content cannot be read.
+     */
+    public void refreshManagerContent() throws IOException {
+        refreshManagerContent(fileManager);
+    }
+
+    private void refreshManagerContent(List<String> list) throws IOException {
+        if (isSourceFile()) {
+            copyFileContentFromFile(list);
+        } else {
+            copyFileContentFromStream(list);
+        }
+    }
+
+    /**
+     * Checks if the cached manager content is up to date.
+     *
+     * @return {@code true} if this filemanager is up to date, {@code false} otherwise
+     */
+    public boolean isManagerUpToDate() {
+        List<String> current = new ArrayList<>();
+        try {
+            refreshManagerContent(current);
+        } catch (IOException e) {
+            System.err.println("[Filemanager]: Failed to read file content: " + e);
+            return false;
+        }
+
+        return new HashSet<>(current).containsAll(fileManager);
+    }
+
+    private void copyFileContentFromFile(List<String> list) throws IOException {
         try (BufferedReader reader = new BufferedReader(new FileReader(getFile()))) {
             if (!isFolder()) {
-                reader.lines().forEach(fileManager::add);
+                reader.lines().forEach(list::add);
             }
         } catch (FileNotFoundException e) {
             throw new FileNotFoundException(
@@ -237,15 +278,15 @@ public class Filemanager {
         }
     }
 
-    private void copyFileContentFromStream() {
+    private void copyFileContentFromStream(List<String> list) throws IOException {
         if (inputStream == null) {
             System.err.println("[Filemanager]: InputStream is null.");
             return;
         }
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
-            reader.lines().forEach(fileManager::add);
+            reader.lines().forEach(list::add);
         } catch (IOException e) {
-            System.err.println("[Filemanager]: Failed to read content from InputStream.");
+            throw new IOException("Failed to read content from InputStream.", e);
         }
     }
 
@@ -261,16 +302,19 @@ public class Filemanager {
     /**
      * Updates the file with the current content stored in memory.
      * If you don't use this after changes, the content you modify will never get written to your specific file.
+     * (Doesn't work for InputStream source)
+     * Won't trim file content. Also see: {@link #trimList()}
      *
      * @return {@code true} if the update was successful, {@code false} otherwise.
      */
     public boolean update() {
-        return update(true);
+        return update(false);
     }
 
     /**
      * Updates the file with the current content stored in memory.
      * If you don't use this after changes, the content you modify will never get written to your specific file.
+     * (Doesn't work for InputStream source)
      *
      * @param trimList If you want to trim your list before updating. See {@link #trimList()}
      * @return {@code true} if the update was successful, {@code false} otherwise.
@@ -309,7 +353,7 @@ public class Filemanager {
     }
 
     /**
-     * Removes empty lines.
+     * Removes empty lines at the end of the file.
      */
     public void trimList() {
         for (int i = lines() - 1; i > 0; i--) {
