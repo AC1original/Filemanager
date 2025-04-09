@@ -38,10 +38,10 @@ dependencies {
 ## How to use
 Example code:
 ```java
-Filemanager manager = null;
+FileManager manager = null;
 
 try {
-    manager = new Filemanager(new File("ressources/data/userdata.dat")); //Initialize new file manager
+    manager = new FileManager(new File("ressources/data/userdata.dat")); //Initialize new file manager
 } catch (NoSuchFileException e) {
     System.err.println("File not found! " + e);
 }

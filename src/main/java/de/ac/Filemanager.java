@@ -1,71 +1,72 @@
 package de.ac;
 
+import de.ac.IFileManager;
+
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
 import java.nio.file.NoSuchFileException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * The {@code Filemanager} class provides functionality to manage file contents,
+ * The {@code FileManager} class provides functionality to manage file contents,
  * allowing reading, writing, and modifying text files.
  * It supports both file-based and InputStream-based sources.
  */
-public class Filemanager {
+public class FileManager implements IFileManager {
 
     private File file = null;
     private InputStream inputStream = null;
 
-    /** 
+    /**
      * Stores the file content as a list of strings.
      * Modified content is kept here until explicitly written to the file with {@link #update()}.
      */
     private final List<String> fileManager = new ArrayList<>();
 
     /**
-     * Creates an empty Filemanager instance.
+     * Creates an empty FileManager instance.
      * Source can be manually set with {@code setSource(Args)}
      */
-    public Filemanager() {}
+    public FileManager() {}
 
     /**
-     * Creates a Filemanager instance and sets the source file.
+     * Creates a FileManager instance and sets the source file.
      *
      * @param path The path of the file to manage.
      * @throws IOException If the file doesn't exist, cannot be read or something like that.
      */
-    public Filemanager(@NotNull final String path) throws IOException {
+    public FileManager(@NotNull final String path) throws IOException {
         setSource(path);
     }
 
     /**
-     * Creates a Filemanager instance with a given file.
+     * Creates a FileManager instance with a given file.
      *
      * @param file The file to manage.
      * @throws NoSuchFileException If the file does not exist.
      * @throws IOException If the file cannot be read or something like that.
      */
-    public Filemanager(@NotNull final File file) throws IOException {
+    public FileManager(@NotNull final File file) throws IOException {
         setSource(file);
     }
 
     /**
-     * Creates a Filemanager instance with an InputStream as a source.
+     * Creates a FileManager instance with an InputStream as a source.
      *
      * @param inputStream The InputStream to read from.
      * @throws IOException If content cannot be read from the InputStream.
      */
-    public Filemanager(@NotNull final InputStream inputStream) throws IOException {
+    public FileManager(@NotNull final InputStream inputStream) throws IOException {
         setSource(inputStream);
     }
 
     /**
-     * Sets the file source for this Filemanager.
+     * Sets the file source for this FileManager.
      *
      * @param path The path of the file.
      * @throws NoSuchFileException If the file does not exist.
@@ -76,7 +77,7 @@ public class Filemanager {
     }
 
     /**
-     * Sets the file source for this Filemanager.
+     * Sets the file source for this FileManager.
      *
      * @param file The file to set as source.
      * @throws NoSuchFileException If the file does not exist.
@@ -94,7 +95,7 @@ public class Filemanager {
     }
 
     /**
-     * Sets an InputStream as the source for this Filemanager.
+     * Sets an InputStream as the source for this FileManager.
      *
      * @param inputStream The InputStream to read from.
      * @throws IOException If content cannot be read from the InputStream.
@@ -257,7 +258,7 @@ public class Filemanager {
         try {
             refreshManagerContent(current);
         } catch (IOException e) {
-            System.err.println("[Filemanager]: Failed to read file content: " + e);
+            System.err.println("[FileManager]: Failed to read file content: " + e);
             return false;
         }
 
@@ -280,7 +281,7 @@ public class Filemanager {
 
     private void copyFileContentFromStream(List<String> list) throws IOException {
         if (inputStream == null) {
-            System.err.println("[Filemanager]: InputStream is null.");
+            System.err.println("[FileManager]: InputStream is null.");
             return;
         }
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
@@ -321,7 +322,7 @@ public class Filemanager {
      */
     public boolean update(final boolean trimList) {
         if (file == null) {
-            System.err.println("[Filemanager]: Cannot update. No file source set.");
+            System.err.println("[FileManager]: Cannot update. No file source set.");
             return false;
         }
         try {
@@ -334,7 +335,7 @@ public class Filemanager {
                 }
             }
         } catch (IOException e) {
-            System.err.printf("[Filemanager]: Failed to write file \"%s\". File is a directory or cannot be opened. Maybe permission issue? Exception: %s",
+            System.err.printf("[FileManager]: Failed to write file \"%s\". File is a directory or cannot be opened. Maybe permission issue? Exception: %s",
                     getFile().getName(), e);
             return false;
         }
@@ -348,7 +349,7 @@ public class Filemanager {
         try (RandomAccessFile randomAccessFile = new RandomAccessFile(getFile(), "rw")) {
             randomAccessFile.setLength(0);
         } catch (IOException e) {
-            System.err.println("[Filemanager]: Failed to clear file: " + e);
+            System.err.println("[FileManager]: Failed to clear file: " + e);
         }
     }
 
@@ -366,7 +367,7 @@ public class Filemanager {
     }
 
     /**
-     * Check if the source, the Filemanager is using, is a file.
+     * Check if the source, the FileManager is using, is a file.
      *
      * @return {@code true} if a file is used as source, {@code false} if an InputStream is used or no source is set.
      */
@@ -375,7 +376,7 @@ public class Filemanager {
     }
 
     /**
-     * Gets the source the Filemanager is using.
+     * Gets the source the FileManager is using.
      *
      * @return {@code "Null"} if no source is set, {@code "File"} if a file is used as source, {@code "InputStream"} if an InputStream is used as source.
      */
