@@ -4,17 +4,20 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.stream.Stream;
 
 public interface IFileManager {
 
-    void setSource(@NotNull final String path);
-    void setSource(@NotNull final File file);
-    void setSource(@NotNull final InputStream inputStream);
+    void setSource(@NotNull final String path) throws IOException;
+    void setSource(@NotNull final File file) throws IOException;
+    void setSource(@NotNull final InputStream inputStream) throws IOException;
 
     @Nullable String getPath();
+
+    @Nullable String getAbsolutePath();
 
     @Nullable File getFile();
 
@@ -33,17 +36,13 @@ public interface IFileManager {
 
     @Nullable String get(final int index);
 
-    long find(final String content);
-    long find(final String startsWith);
-    long find(final String contains);
-
     void clearFile();
 
-    void trimFile();
+    void trimContent();
 
     boolean isSourceEditable();
 
-    boolean isReadOnly();
+    boolean isSourceReadOnly();
 
-    @Nullable String getSource();
+    String getSource();
 }
