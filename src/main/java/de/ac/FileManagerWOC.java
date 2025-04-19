@@ -4,6 +4,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.util.List;
 import java.util.UUID;
@@ -201,7 +202,7 @@ public class FileManagerWOC implements IFileManager {
     /**
      * Adds content at the specified index in the file or stream.
      *
-     * @param index the index where the content should be added
+     * @param index   the index where the content should be added
      * @param content the content to add
      */
     @Override
@@ -212,16 +213,13 @@ public class FileManagerWOC implements IFileManager {
             return;
         }
 
-        Path originalPath = file.toPath();
-        Path tempPath = null;
-        File tempFile = null;
-
         try {
-            tempPath = Files.createTempFile("temp_", ".txt");
-            tempFile = tempPath.toFile();
+            Path originalPath = file.toPath();
+            Path tempPath = Files.createTempFile("temp_", ".txt");
+            tempPath.toFile().deleteOnExit();
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file));
-                 BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+                 BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8, StandardOpenOption.DELETE_ON_CLOSE)) {
 
                 String line;
                 int currentIndex = 0;
@@ -243,23 +241,15 @@ public class FileManagerWOC implements IFileManager {
             }
 
             Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
-
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to add content at index " + index + ": " + e);
-        } finally {
-            if (tempFile != null && tempFile.exists()) {
-                if (!tempFile.delete()) {
-                    System.err.println("[FileManager] Failed to delete temp file: " + tempFile.getAbsolutePath());
-                }
-            }
         }
     }
-
 
     /**
      * Sets content at the specified index in the file or stream, replacing the existing content.
      *
-     * @param index the index where the content should be set
+     * @param index   the index where the content should be set
      * @param content the content to set
      */
     @Override
@@ -270,16 +260,13 @@ public class FileManagerWOC implements IFileManager {
             return;
         }
 
-        Path originalPath = file.toPath();
-        Path tempPath = null;
-        File tempFile = null;
-
         try {
-            tempPath = Files.createTempFile("temp_", ".txt");
-            tempFile = tempPath.toFile();
+            Path originalPath = file.toPath();
+            Path tempPath = Files.createTempFile("temp_", ".txt");
+            tempPath.toFile().deleteOnExit();
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file));
-                 BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+                 BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8, StandardOpenOption.DELETE_ON_CLOSE)) {
 
                 String line;
                 int currentIndex = 0;
@@ -308,15 +295,8 @@ public class FileManagerWOC implements IFileManager {
             }
 
             Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
-
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to set content at index " + index + ": " + e);
-        } finally {
-            if (tempFile != null && tempFile.exists()) {
-                if (!tempFile.delete()) {
-                    System.err.println("[FileManager] Failed to delete temp file: " + tempFile.getAbsolutePath());
-                }
-            }
         }
     }
 
@@ -327,22 +307,18 @@ public class FileManagerWOC implements IFileManager {
      */
     @Override
     public void remove(int index) {
-        File file = getFile();
-        if (file == null) {
+        if (getFile() == null) {
             System.err.println("[FileManager] Failed to read file source: null.");
             return;
         }
 
-        Path originalPath = file.toPath();
-        Path tempPath = null;
-        File tempFile = null;
-
         try {
-            tempPath = Files.createTempFile("temp_", ".txt");
-            tempFile = tempPath.toFile();
+            Path originalPath = getFile().toPath();
+            Path tempPath = Files.createTempFile(".temp_" + UUID.randomUUID(), ".txt");
+            tempPath.toFile().deleteOnExit();
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(file));
-                 BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+            try (BufferedReader reader = new BufferedReader(new FileReader(getFile()));
+                 BufferedWriter writer = new BufferedWriter(Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8, StandardOpenOption.DELETE_ON_CLOSE))) {
 
                 String line;
                 int currentIndex = 0;
@@ -364,15 +340,8 @@ public class FileManagerWOC implements IFileManager {
             }
 
             Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
-
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to remove content at index " + index + ": " + e);
-        } finally {
-            if (tempFile != null && tempFile.exists()) {
-                if (!tempFile.delete()) {
-                    System.err.println("[FileManager] Failed to delete temp file: " + tempFile.getAbsolutePath());
-                }
-            }
         }
     }
 
@@ -389,40 +358,25 @@ public class FileManagerWOC implements IFileManager {
             return;
         }
 
-        Path originalPath = file.toPath();
-        Path tempPath = null;
-        File tempFile = null;
-
         try {
-            tempPath = Files.createTempFile("temp_", ".txt");
-            tempFile = tempPath.toFile();
+            Path originalPath = file.toPath();
+            Path tempPath = Files.createTempFile("temp_", ".txt");
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file));
-                 BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
+                 BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8, StandardOpenOption.DELETE_ON_CLOSE)) {
 
                 String line;
-                boolean removed = false;
-
                 while ((line = reader.readLine()) != null) {
-                    if (!removed && line.equals(content)) {
-                        removed = true;
-                        continue;
+                    if (!line.equals(content)) {
+                        writer.write(line);
+                        writer.newLine();
                     }
-                    writer.write(line);
-                    writer.newLine();
                 }
             }
 
             Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
-
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to remove content '" + content + "': " + e);
-        } finally {
-            if (tempFile != null && tempFile.exists()) {
-                if (!tempFile.delete()) {
-                    System.err.println("[FileManager] Failed to delete temp file: " + tempFile.getAbsolutePath());
-                }
-            }
         }
     }
 
@@ -471,14 +425,13 @@ public class FileManagerWOC implements IFileManager {
             return;
         }
 
-        Path tempPath = null;
-
         try {
-            tempPath = Files.createTempFile("temp_", ".txt");
+            Path tempPath = Files.createTempFile("temp_", ".txt");
+            tempPath.toFile().deleteOnExit();
 
             try (
                     BufferedReader reader = new BufferedReader(new FileReader(file));
-                    BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardOpenOption.WRITE)
+                    BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8, StandardOpenOption.DELETE_ON_CLOSE)
             ) {
                 String line;
 
@@ -494,14 +447,6 @@ public class FileManagerWOC implements IFileManager {
 
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to trim content of the file: " + e);
-        } finally {
-            if (tempPath != null) {
-                try {
-                    Files.deleteIfExists(tempPath);
-                } catch (IOException e) {
-                    System.err.println("[FileManager] Failed to delete temporary file: " + e);
-                }
-            }
         }
     }
 
