@@ -6,7 +6,7 @@
 
     <groupId>de.ac</groupId>
     <artifactId>filemanager</artifactId>
-    <version>1.10</version>
+    <version>1.1.1</version>
 
     <dependencies>
         <dependency>

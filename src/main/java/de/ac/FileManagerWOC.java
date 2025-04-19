@@ -212,12 +212,16 @@ public class FileManagerWOC implements IFileManager {
             return;
         }
 
+        Path originalPath = file.toPath();
+        Path tempPath = null;
+        File tempFile = null;
+
         try {
-            Path originalPath = file.toPath();
-            Path tempPath = Files.createTempFile("temp_", ".txt");
+            tempPath = Files.createTempFile("temp_", ".txt");
+            tempFile = tempPath.toFile();
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file));
-                 BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardOpenOption.WRITE)) {
+                 BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
 
                 String line;
                 int currentIndex = 0;
@@ -239,10 +243,18 @@ public class FileManagerWOC implements IFileManager {
             }
 
             Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
+
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to add content at index " + index + ": " + e);
+        } finally {
+            if (tempFile != null && tempFile.exists()) {
+                if (!tempFile.delete()) {
+                    System.err.println("[FileManager] Failed to delete temp file: " + tempFile.getAbsolutePath());
+                }
+            }
         }
     }
+
 
     /**
      * Sets content at the specified index in the file or stream, replacing the existing content.
@@ -258,12 +270,16 @@ public class FileManagerWOC implements IFileManager {
             return;
         }
 
+        Path originalPath = file.toPath();
+        Path tempPath = null;
+        File tempFile = null;
+
         try {
-            Path originalPath = file.toPath();
-            Path tempPath = Files.createTempFile("temp_", ".txt");
+            tempPath = Files.createTempFile("temp_", ".txt");
+            tempFile = tempPath.toFile();
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file));
-                 BufferedWriter writer = Files.newBufferedWriter(tempPath)) {
+                 BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
 
                 String line;
                 int currentIndex = 0;
@@ -292,8 +308,15 @@ public class FileManagerWOC implements IFileManager {
             }
 
             Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
+
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to set content at index " + index + ": " + e);
+        } finally {
+            if (tempFile != null && tempFile.exists()) {
+                if (!tempFile.delete()) {
+                    System.err.println("[FileManager] Failed to delete temp file: " + tempFile.getAbsolutePath());
+                }
+            }
         }
     }
 
@@ -304,17 +327,22 @@ public class FileManagerWOC implements IFileManager {
      */
     @Override
     public void remove(int index) {
-        if (getFile() == null) {
+        File file = getFile();
+        if (file == null) {
             System.err.println("[FileManager] Failed to read file source: null.");
             return;
         }
 
-        try {
-            Path originalPath = getFile().toPath();
-            Path tempPath = Files.createTempFile(".temp_" + UUID.randomUUID(), ".txt");
+        Path originalPath = file.toPath();
+        Path tempPath = null;
+        File tempFile = null;
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(getFile()));
-                 BufferedWriter writer = new BufferedWriter(Files.newBufferedWriter(tempPath))) {
+        try {
+            tempPath = Files.createTempFile("temp_", ".txt");
+            tempFile = tempPath.toFile();
+
+            try (BufferedReader reader = new BufferedReader(new FileReader(file));
+                 BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
 
                 String line;
                 int currentIndex = 0;
@@ -336,8 +364,15 @@ public class FileManagerWOC implements IFileManager {
             }
 
             Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
+
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to remove content at index " + index + ": " + e);
+        } finally {
+            if (tempFile != null && tempFile.exists()) {
+                if (!tempFile.delete()) {
+                    System.err.println("[FileManager] Failed to delete temp file: " + tempFile.getAbsolutePath());
+                }
+            }
         }
     }
 
@@ -354,25 +389,40 @@ public class FileManagerWOC implements IFileManager {
             return;
         }
 
+        Path originalPath = file.toPath();
+        Path tempPath = null;
+        File tempFile = null;
+
         try {
-            Path originalPath = file.toPath();
-            Path tempPath = Files.createTempFile("temp_", ".txt");
+            tempPath = Files.createTempFile("temp_", ".txt");
+            tempFile = tempPath.toFile();
 
             try (BufferedReader reader = new BufferedReader(new FileReader(file));
-                 BufferedWriter writer = Files.newBufferedWriter(tempPath)) {
+                 BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))) {
 
                 String line;
+                boolean removed = false;
+
                 while ((line = reader.readLine()) != null) {
-                    if (!line.equals(content)) {
-                        writer.write(line);
-                        writer.newLine();
+                    if (!removed && line.equals(content)) {
+                        removed = true;
+                        continue;
                     }
+                    writer.write(line);
+                    writer.newLine();
                 }
             }
 
             Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
+
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to remove content '" + content + "': " + e);
+        } finally {
+            if (tempFile != null && tempFile.exists()) {
+                if (!tempFile.delete()) {
+                    System.err.println("[FileManager] Failed to delete temp file: " + tempFile.getAbsolutePath());
+                }
+            }
         }
     }
 
@@ -410,41 +460,48 @@ public class FileManagerWOC implements IFileManager {
     }
 
     /**
-     * Trims the content of the file, keeping only the first 100 non-empty lines.
+     * Removes all empty lines from the file.
+     * The content of the file is preserved, but any lines that are completely empty (or contain only whitespace) will be deleted.
      */
     @Override
     public void trimContent() {
-        if (getFile() == null) {
+        File file = getFile();
+        if (file == null) {
             System.err.println("[FileManager] File source is null.");
             return;
         }
 
-        File tempFile = new File(getFile().getParent(), ".temp_" + UUID.randomUUID().toString() + ".txt");
+        Path tempPath = null;
 
-        try (
-                BufferedReader reader = new BufferedReader(new FileReader(getFile()));
-                BufferedWriter writer = new BufferedWriter(new FileWriter(tempFile))
-        ) {
-            String line;
-            int lineCount = 0;
+        try {
+            tempPath = Files.createTempFile("temp_", ".txt");
 
-            while ((line = reader.readLine()) != null && lineCount < 100) {
-                if (!line.trim().isEmpty()) {
-                    writer.write(line);
-                    writer.newLine();
-                    lineCount++;
+            try (
+                    BufferedReader reader = new BufferedReader(new FileReader(file));
+                    BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardOpenOption.WRITE)
+            ) {
+                String line;
+
+                while ((line = reader.readLine()) != null) {
+                    if (!line.trim().isEmpty()) {
+                        writer.write(line);
+                        writer.newLine();
+                    }
                 }
             }
 
-            if (!getFile().delete()) {
-                System.err.println("[FileManager] Failed to delete original file.");
-            }
-            if (!tempFile.renameTo(getFile())) {
-                System.err.println("[FileManager] Failed to rename temp file.");
-            }
+            Files.move(tempPath, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
 
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to trim content of the file: " + e);
+        } finally {
+            if (tempPath != null) {
+                try {
+                    Files.deleteIfExists(tempPath);
+                } catch (IOException e) {
+                    System.err.println("[FileManager] Failed to delete temporary file: " + e);
+                }
+            }
         }
     }
 
