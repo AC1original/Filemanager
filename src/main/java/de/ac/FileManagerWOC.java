@@ -158,7 +158,7 @@ public class FileManagerWOC implements IFileManager {
     /**
      * Returns a stream of the content of the file or stream, allowing for line-by-line processing without loading
      * the entire content into memory.
-     *
+     * DON'T FORGET TO CLOSE THIS STREAM AFTER USE!
      * @return a stream of lines from the source
      */
     @Override
