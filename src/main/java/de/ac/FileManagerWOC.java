@@ -170,7 +170,13 @@ public class FileManagerWOC implements IFileManager {
         try {
             var inputStream = getInputStream() != null ? getInputStream() : new FileInputStream(getFile());
             var reader = new BufferedReader(new InputStreamReader(inputStream));
-            return reader.lines();
+            return reader.lines().onClose(() -> {
+                try {
+                    reader.close();
+                } catch (IOException e) {
+                    System.err.println("[FileManager] Failed to close reader: " + e);
+                }
+            });
         } catch (Exception e) {
             System.err.println("[FileManager] Failed to read input content: " + e);
         }
