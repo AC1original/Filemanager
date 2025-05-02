@@ -88,9 +88,7 @@ manager.add("New entry");
 manager.update();
 
 // Print all lines
-for (String content : manager.getContent()) {
-    System.out.println(content);
-}
+manager.getContentStream().forEach(System.out::println);
 ```
 
 > ⚠️ **Note:** When using `FileManager`, you must call `update()` to apply changes to the file, unless you enable `setAutoUpdate(true)`.
