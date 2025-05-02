@@ -99,7 +99,7 @@ manager.getContentStream().forEach(System.out::println);
 
 ## ⚠️ Important Note
 
-If you're using an `InputStream` as the source, the file is read-only.  
+If you're using an `InputStream` as the source, the source is read-only.  
 That means methods like `set()`, `add()`, `remove()`, etc. will have no effect.  
 These operations are only supported when using a `File` as the source.
 
