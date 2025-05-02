@@ -1,15 +1,44 @@
-# File Manager
-Simple file manager library for Java. This file manager provides functionality to manage file contents, allowing reading, writing, and modifying files. It supports both file-based and InputStream-based sources.
+# 📁 FileManager
 
-## Contributing
-Feel free to fork this repository, make improvements and submit a pull request!
+**FileManager** is a lightweight and flexible Java library for managing text file content. It provides two different classes tailored for different use cases:
 
-## Contact
-For any questions or suggestions [contact me on Discord](https://discord.com/users/872921450691067924/). <br>
+- `FileManager` – stores the entire file content in memory (faster, but more memory usage).
+- `FileManagerWOC` – works without caching the whole file (slower, but more memory-efficient).
 
-## Dependency
+---
+
+## 🚀 Features
+
+- Read, write, insert, and remove lines from files
+- Support for both `File` and `InputStream` sources
+- Manual or automatic file updates
+- Optimized for both small and large files
+
+---
+
+## 🧱 Class Overview
+
+### `FileManager`
+
+- Loads the entire file into a `List<String>`
+- Changes are only written to the file when calling `update()`
+- Use `setAutoUpdate(true)` to automatically save after each change
+- Best suited for smaller files or when performing many changes in memory
+
+### `FileManagerWOC` (Without Cache)
+
+- Does not load the whole file into memory
+- Each operation directly reads from or writes to the file
+- No need to call `update()` – changes are immediately applied
+- Ideal for large files or low-memory environments
+
+---
+
+## 🛠️ Installation
+
 ### Maven
-```
+
+```xml
 <repositories>
     <repository>
         <id>jitpack.io</id>
@@ -25,8 +54,10 @@ For any questions or suggestions [contact me on Discord](https://discord.com/use
     </dependency>
 </dependencies>
 ```
-### Gradle 
-```
+
+### Gradle
+
+```groovy
 repositories {
     maven { url 'https://jitpack.io' }
 }
@@ -35,24 +66,53 @@ dependencies {
     implementation 'com.github.AC1original:Filemanager:v1.0.10'
 }
 ```
-## How to use
-Example code:
+
+> 👉 See [Releases](https://github.com/AC1original/Filemanager/releases) for the latest version.
+
+---
+
+## 📄 Usage Example
+
 ```java
-FileManager manager = null;
+import de.ac.filemanager.FileManager;
 
-try {
-    manager = new FileManager(new File("ressources/data/userdata.dat")); //Initialize new file manager
-} catch (NoSuchFileException e) {
-    System.err.println("File not found! " + e);
-}
+FileManager manager = new FileManager(new File("resources/data/userdata.dat"));
 
-manager.remove(10); //Remove content of specific index
-manager.add("Text"); //Add new line
-manager.update(); //Write changes to file
+// Remove a specific line
+manager.remove(10);
 
+// Add a new line
+manager.add("New entry");
+
+// Save changes to the file
+manager.update();
+
+// Print all lines
 for (String content : manager.getContent()) {
     System.out.println(content);
 }
 ```
-## Important Node
-Make sure to use ```#update()``` after modifying a file to apply and save the changes to that file!
+
+> ⚠️ **Note:** When using `FileManager`, you must call `update()` to apply changes to the file, unless you enable `setAutoUpdate(true)`.
+
+> ✅ **With `FileManagerWOC`, changes are written immediately.** No call to `update()` is necessary.
+> 
+---
+
+## ⚠️ Important Note
+
+If you're using an `InputStream` as the source, the file is read-only.  
+That means methods like `set()`, `add()`, `remove()`, etc. will have no effect.  
+These operations are only supported when using a `File` as the source.
+
+---
+
+## 🤝 Contributing
+
+Feel free to fork this repository, make improvements, and submit a pull request!
+
+---
+
+## 📬 Contact
+
+For questions or suggestions, feel free to [contact me on Discord](https://discord.com/users/872921450691067924/).
