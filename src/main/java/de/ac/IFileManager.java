@@ -157,7 +157,9 @@ public interface IFileManager {
      *
      * @return {@code true} if the source is read-only, otherwise {@code false}.
      */
-    boolean isSourceReadOnly();
+    default boolean isSourceReadOnly() {
+        return !isSourceEditable();
+    }
 
     /**
      * Returns a string identifying the source type, either "File" or "InputStream".

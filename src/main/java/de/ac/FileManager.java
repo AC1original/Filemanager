@@ -293,16 +293,6 @@ public class FileManager implements IFileManager {
     }
 
     /**
-     * Checks if the source file is read-only.
-     *
-     * @return {@code true} if the source is read-only, otherwise {@code false}.
-     */
-    @Override
-    public boolean isSourceReadOnly() {
-        return getFile() == null || !getFile().canRead();
-    }
-
-    /**
      * Returns the type of the source, either "File" or "InputStream".
      *
      * @return The source type.

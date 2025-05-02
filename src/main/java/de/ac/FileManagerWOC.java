@@ -6,6 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -458,16 +459,6 @@ public class FileManagerWOC implements IFileManager {
     @Override
     public boolean isSourceEditable() {
         return getFile() != null && getFile().isFile() && !isSourceReadOnly();
-    }
-
-    /**
-     * Determines whether the file source is read-only.
-     *
-     * @return {@code true} if the file is read-only, otherwise {@code false}
-     */
-    @Override
-    public boolean isSourceReadOnly() {
-        return getFile() == null || !getFile().canRead();
     }
 
     /**
