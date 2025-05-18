@@ -67,8 +67,6 @@ dependencies {
 }
 ```
 
-> 👉 See [Releases](https://github.com/AC1original/Filemanager/releases) for the latest version.
-
 ---
 
 ## 📄 Usage Example
