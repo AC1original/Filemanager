@@ -6,7 +6,6 @@ import org.jetbrains.annotations.Nullable;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -214,39 +213,11 @@ public class FileManagerWOC implements IFileManager {
      */
     @Override
     public void add(int index, String content) {
-        File file = getFile();
-        if (file == null) {
-            System.err.println("[FileManager] Failed to read file source: null.");
-            return;
-        }
-
         try {
-            Path originalPath = file.toPath();
-            Path tempPath = Files.createTempFile(originalPath.getParent(), "temp_", ".txt");
-
-            try (BufferedReader reader = new BufferedReader(new FileReader(file));
-                 BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8)) {
-
-                String line;
-                int currentIndex = 0;
-
-                while ((line = reader.readLine()) != null) {
-                    if (currentIndex == index) {
-                        writer.write(content);
-                        writer.newLine();
-                    }
-                    writer.write(line);
-                    writer.newLine();
-                    currentIndex++;
-                }
-
-                if (index >= currentIndex) {
-                    writer.write(content);
-                    writer.newLine();
-                }
-            }
-
-            Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
+            editFileLineByLine((line, i) -> {
+                if (i == index) return LineEditResult.insert(content);
+                return LineEditResult.keep();
+            }, index < 0, content);
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to add content at index " + index + ": " + e);
         }
@@ -260,46 +231,11 @@ public class FileManagerWOC implements IFileManager {
      */
     @Override
     public void set(int index, String content) {
-        File file = getFile();
-        if (file == null) {
-            System.err.println("[FileManager] Failed to read file source: null.");
-            return;
-        }
-
         try {
-            Path originalPath = file.toPath();
-            Path tempPath = Files.createTempFile(originalPath.getParent(), "temp_", ".txt");
-
-            try (BufferedReader reader = new BufferedReader(new FileReader(file));
-                 BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8)) {
-
-                String line;
-                int currentIndex = 0;
-                boolean contentSet = false;
-
-                while ((line = reader.readLine()) != null) {
-                    if (currentIndex == index) {
-                        writer.write(content);
-                        contentSet = true;
-                    } else {
-                        writer.write(line);
-                    }
-                    writer.newLine();
-                    currentIndex++;
-                }
-
-                while (currentIndex < index) {
-                    writer.newLine();
-                    currentIndex++;
-                }
-
-                if (!contentSet) {
-                    writer.write(content);
-                    writer.newLine();
-                }
-            }
-
-            Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
+            editFileLineByLine((line, i) -> {
+                if (i == index) return LineEditResult.replace(content);
+                return LineEditResult.keep();
+            }, true, content);
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to set content at index " + index + ": " + e);
         }
@@ -312,40 +248,10 @@ public class FileManagerWOC implements IFileManager {
      */
     @Override
     public void remove(int index) {
-        if (getFile() == null) {
-            System.err.println("[FileManager] Failed to read file source: null.");
-            return;
-        }
-
         try {
-            Path originalPath = getFile().toPath();
-            Path tempPath = Files.createTempFile(originalPath.getParent(), ".temp_" + UUID.randomUUID(), ".txt");
-
-            try (BufferedReader reader = new BufferedReader(new FileReader(getFile()));
-                 BufferedWriter writer = new BufferedWriter(Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8))) {
-
-                String line;
-                int currentIndex = 0;
-                boolean removed = false;
-
-                while ((line = reader.readLine()) != null) {
-                    if (currentIndex != index) {
-                        writer.write(line);
-                        writer.newLine();
-                    } else {
-                        removed = true;
-                    }
-                    currentIndex++;
-                }
-
-                if (!removed) {
-                    System.err.println("[FileManager] Index is out of bounds.");
-                }
-            }
-
-            Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
+            editFileLineByLine((line, i) -> i == index ? LineEditResult.remove() : LineEditResult.keep(), false, null);
         } catch (IOException e) {
-            System.err.println("[FileManager] Failed to remove content at index " + index + ": " + e);
+            System.err.println("[FileManager] Failed to remove line at index " + index + ": " + e);
         }
     }
 
@@ -356,29 +262,15 @@ public class FileManagerWOC implements IFileManager {
      */
     @Override
     public void remove(@NotNull String content) {
-        File file = getFile();
-        if (file == null) {
-            System.err.println("[FileManager] Failed to read file source: null.");
-            return;
-        }
-
         try {
-            Path originalPath = file.toPath();
-            Path tempPath = Files.createTempFile(originalPath.getParent(), "temp_", ".txt");
-
-            try (BufferedReader reader = new BufferedReader(new FileReader(file));
-                 BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8)) {
-
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    if (!line.equals(content)) {
-                        writer.write(line);
-                        writer.newLine();
-                    }
+            boolean[] removed = {false};
+            editFileLineByLine((line, i) -> {
+                if (!removed[0] && line.equals(content)) {
+                    removed[0] = true;
+                    return LineEditResult.remove();
                 }
-            }
-
-            Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
+                return LineEditResult.keep();
+            }, false, null);
         } catch (IOException e) {
             System.err.println("[FileManager] Failed to remove content '" + content + "': " + e);
         }
@@ -423,31 +315,10 @@ public class FileManagerWOC implements IFileManager {
      */
     @Override
     public void trimContent() {
-        File file = getFile();
-        if (file == null) {
-            System.err.println("[FileManager] File source is null.");
-            return;
-        }
-
         try {
-            Path tempPath = Files.createTempFile(file.toPath().getParent(), "temp_", ".txt");
-
-            try (
-                    BufferedReader reader = new BufferedReader(new FileReader(file));
-                    BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8)
-            ) {
-                String line;
-
-                while ((line = reader.readLine()) != null) {
-                    if (!line.trim().isEmpty()) {
-                        writer.write(line);
-                        writer.newLine();
-                    }
-                }
-            }
-            Files.move(tempPath, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            editFileLineByLine((line, i) -> line.trim().isEmpty() ? LineEditResult.remove() : LineEditResult.keep(), false, null);
         } catch (IOException e) {
-            System.err.println("[FileManager] Failed to trim content of the file: " + e);
+            System.err.println("[FileManager] Failed to trim content: " + e);
         }
     }
 
@@ -470,4 +341,79 @@ public class FileManagerWOC implements IFileManager {
     public String getSource() {
         return getFile() == null ? "InputStream" : "File";
     }
+
+    private void editFileLineByLine(LineEditor editor, boolean appendIfMissing, @Nullable String finalLine) throws IOException {
+        File file = getFile();
+        if (file == null) {
+            System.err.println("[FileManager] File source is null.");
+            return;
+        }
+
+        Path originalPath = file.toPath();
+        Path tempPath = Files.createTempFile(originalPath.getParent(), "temp_", ".txt");
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file));
+             BufferedWriter writer = Files.newBufferedWriter(tempPath, StandardCharsets.UTF_8)) {
+
+            String line;
+            int index = 0;
+            boolean actionPerformed = false;
+
+            while ((line = reader.readLine()) != null) {
+                LineEditResult result = editor.editLine(line, index++);
+                switch (result.action) {
+                    case KEEP -> {
+                        writer.write(line);
+                        writer.newLine();
+                    }
+                    case REPLACE -> {
+                        writer.write(result.newLine);
+                        writer.newLine();
+                        actionPerformed = true;
+                    }
+                    case INSERT -> {
+                        writer.write(result.newLine);
+                        writer.newLine();
+                        writer.write(line);
+                        writer.newLine();
+                        actionPerformed = true;
+                    }
+                    case REMOVE -> {
+                        actionPerformed = true;
+                    }
+                }
+            }
+
+            if (!actionPerformed && appendIfMissing && finalLine != null) {
+                writer.write(finalLine);
+                writer.newLine();
+            }
+        }
+
+        Files.move(tempPath, originalPath, StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    private interface LineEditor {
+        LineEditResult editLine(String line, int index);
+    }
+
+    private record LineEditResult(FileManagerWOC.LineEditResult.Action action, String newLine) {
+            enum Action {KEEP, REPLACE, INSERT, REMOVE}
+
+        static LineEditResult keep() {
+            return new LineEditResult(Action.KEEP, null);
+        }
+
+            static LineEditResult replace(String newLine) {
+                return new LineEditResult(Action.REPLACE, newLine);
+            }
+
+            static LineEditResult insert(String newLine) {
+                return new LineEditResult(Action.INSERT, newLine);
+            }
+
+            static LineEditResult remove() {
+                return new LineEditResult(Action.REMOVE, null);
+            }
+        }
 }
